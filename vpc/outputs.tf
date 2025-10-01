@@ -5,9 +5,8 @@ output "vpc_id" {
 
 output "public_subnet_ids" {
   description = "IDs of public subnets"
-  value       = [for _, s in aws_subnet.public : s.id]
+  value       = [for _, s in aws_subnet.public_subnet : s.id]
 }
-
 
 output "bastion_sg_id" {
   description = "Bastion SG ID"

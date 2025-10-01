@@ -2,17 +2,15 @@
 resource "aws_vpc" "assignment1_vpc" {
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
-  enable_dns_support = true
+  enable_dns_support   = true
 
   tags = {
     Name        = "${var.project}-${var.environment}-vpc"
-    project     = var.project
-    environment = var.environment
   }
 }
 
 #Public Subnets
-resource "aws_subnet" "public" {
+resource "aws_subnet" "public_subnet" {
   for_each = local.public_map
 
   vpc_id                  = aws_vpc.assignment1_vpc.id
@@ -24,13 +22,11 @@ resource "aws_subnet" "public" {
     Name        = "${var.project}-${var.environment}-public-${each.value.az}"
     Tier        = "public"
     AZ          = each.value.az
-    project     = var.project
-    environment = var.environment
   }
 }
 
 #Private App Subnets
-resource "aws_subnet" "private_app" {
+resource "aws_subnet" "private_subnet" {
   for_each = local.app_map
 
   vpc_id                  = aws_vpc.assignment1_vpc.id
@@ -42,14 +38,11 @@ resource "aws_subnet" "private_app" {
     Name        = "${var.project}-${var.environment}-app-${each.value.az}"
     Tier        = "app"
     AZ          = each.value.az
-    project     = var.project
-    environment = var.environment
   }
 }
 
-
 #Private Data Subnets
-resource "aws_subnet" "private_data" {
+resource "aws_subnet" "private_data_subnet" {
   for_each = local.data_map
 
   vpc_id                  = aws_vpc.assignment1_vpc.id
@@ -61,8 +54,6 @@ resource "aws_subnet" "private_data" {
     Name        = "${var.project}-${var.environment}-data-${each.value.az}"
     Tier        = "data"
     AZ          = each.value.az
-    project     = var.project
-    environment = var.environment
   }
 }
 
@@ -75,7 +66,7 @@ resource "aws_internet_gateway" "igw" {
 }
 
 #Public route table
-resource "aws_route_table" "route_table" {
+resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.assignment1_vpc.id
   route {
     cidr_block = "0.0.0.0/0"
@@ -88,74 +79,60 @@ resource "aws_route_table" "route_table" {
 
 #Public route table association
 resource "aws_route_table_association" "subnet_associations" {
-  for_each       = aws_subnet.public
+  for_each       = aws_subnet.public_subnet
   subnet_id      = each.value.id
-  route_table_id = aws_route_table.route_table.id
+  route_table_id = aws_route_table.public_rt.id
 }
-
-
 
 # One EIP per AZ
 resource "aws_eip" "nat_eip" {
-  for_each = aws_subnet.public
+  for_each = aws_subnet.public_subnet
   domain   = "vpc"
   tags = {
     Name = "${local.name_prefix}-eip-${each.key}"
   }
 }
 
-# NAT GAteway in public subnet 
+# NAT Gateway in public subnet 
 resource "aws_nat_gateway" "nat_gateway" {
-  for_each      = aws_subnet.public
+  for_each      = aws_subnet.public_subnet
   allocation_id = aws_eip.nat_eip[each.key].id
-  subnet_id     = aws_subnet.public[each.key].id
+  subnet_id     = aws_subnet.public_subnet[each.key].id
   depends_on    = [aws_internet_gateway.igw]
   tags = {
     Name = "${local.name_prefix}-nat-${each.key}"
   }
 }
 
-
 # App route tables per AZ 
 resource "aws_route_table" "app_rt" {
-  for_each = aws_subnet.private_app
+  for_each = aws_subnet.private_subnet
   vpc_id   = aws_vpc.assignment1_vpc.id
-
+  tags = { Name = "${local.name_prefix}-rtb-app-${each.key}" }
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.nat_gateway[each.key].id
   }
-
-  tags = { Name = "${local.name_prefix}-rtb-app-${each.key}" }
 }
 
-#App subnets association with route table
+# App subnets association with route table
 resource "aws_route_table_association" "app" {
-  for_each       = aws_subnet.private_app
+  for_each       = aws_subnet.private_subnet
   subnet_id      = each.value.id
   route_table_id = aws_route_table.app_rt[each.key].id
 }
 
-
-#DB route table without acces to Internet
+# DB route table without acces to Internet
 resource "aws_route_table" "data_rt" {
   for_each = toset(var.availability_zone)
   vpc_id   = aws_vpc.assignment1_vpc.id
   tags     = { Name = "${var.project}-${var.environment}-rtb-data-${each.key}" }
 }
 
-# Route 0.0.0.0/0 via the NAT in the same AZ
-resource "aws_route" "data_nat_default" {
-  for_each               = toset(var.availability_zone)
-  route_table_id         = aws_route_table.data_rt[each.key].id
-  destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.nat_gateway[each.key].id
-}
-
-#Data subnets association with route table
+# DB association with route table
 resource "aws_route_table_association" "data" {
-  for_each  = toset(var.availability_zone)
-  subnet_id = aws_subnet.private_data[each.key].id
+  for_each       = toset(var.availability_zone)
+  subnet_id      = aws_subnet.private_data_subnet[each.key].id
   route_table_id = aws_route_table.data_rt[each.key].id
 }
 
@@ -164,39 +141,34 @@ resource "aws_route_table_association" "data" {
 
 # ------------ Security Groups -----------
 
-
-
 # SG for Public Tier
 resource "aws_security_group" "alb_sg" {
   vpc_id = aws_vpc.assignment1_vpc.id
   name   = "${local.name_prefix}-alb-sg"
-   tags   = { Name = "${local.name_prefix}-alb-sg" }
+  tags   = { Name = "${local.name_prefix}-alb-sg" }
 }
 
 
-
-# ----- Security group for App Tier -----
+# Security group for App Tier
 resource "aws_security_group" "app_sg" {
- vpc_id = aws_vpc.assignment1_vpc.id
+  vpc_id = aws_vpc.assignment1_vpc.id
   name   = "${local.name_prefix}-app-sg"
-   tags   = { Name = "${local.name_prefix}-app-sg" }
+  tags   = { Name = "${local.name_prefix}-app-sg" }
 }
 
-# ----- SG for db (MOST ISOLATED) allow only DB port from App; no egress -----
+# SG for db (MOST ISOLATED) allow only DB port from App; no egress
 resource "aws_security_group" "db_sg" {
   vpc_id = aws_vpc.assignment1_vpc.id
   name   = "${local.name_prefix}-db-sg"
-  egress = []  # ← explicitly no outbound
-  tags   = { Name = "${local.name_prefix}-db-sg" } 
+  egress = []
+  tags   = { Name = "${local.name_prefix}-db-sg" }
 }
-
 
 # Bastion SG (SSH only from my IP)
 resource "aws_security_group" "bastion_sg" {
   vpc_id = aws_vpc.assignment1_vpc.id
   name   = "${local.name_prefix}-bastion-sg"
   tags   = { Name = "${local.name_prefix}-bastion-sg" }
-
 }
 
 
@@ -215,71 +187,49 @@ resource "aws_security_group_rule" "alb_ingress_https" {
   description       = "HTTPS from Internet"
 }
 
-# Egress 
-resource "aws_security_group_rule" "alb_egress_to_app_https" {
-  type                      = "egress"
-  security_group_id         = aws_security_group.alb_sg.id
-  from_port                 = 443
-  to_port                   = 443
-  protocol                  = "tcp"
-  source_security_group_id  = aws_security_group.app_sg.id
-  description               = "HTTPS to App tier"
-}
-
-# ALB -> App on HTTP (port 80) for health checks only
-resource "aws_security_group_rule" "alb_egress_to_app_http" {
-  type                      = "egress"
-  security_group_id         = aws_security_group.alb_sg.id
-  from_port                 = 80
-  to_port                   = 80
-  protocol                  = "tcp"
-  source_security_group_id  = aws_security_group.app_sg.id
-  description               = "HTTP to App tier (health checks)"
-}
-
 resource "aws_security_group_rule" "app_ingress_http_from_alb" {
-  type                      = "ingress"
-  security_group_id         = aws_security_group.app_sg.id
-  from_port                 = 80
-  to_port                   = 80
-  protocol                  = "tcp"
-  source_security_group_id  = aws_security_group.alb_sg.id
-  description               = "HTTP from ALB (health checks)"
+  type                     = "ingress"
+  security_group_id        = aws_security_group.app_sg.id
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.alb_sg.id
+  description              = "HTTP from ALB (health checks)"
 }
 
 #App rules
 # Ingress 443 from ALB SG
 resource "aws_security_group_rule" "app_ingress_https_from_alb" {
-  type                      = "ingress"
-  security_group_id         = aws_security_group.app_sg.id
-  from_port                 = 443
-  to_port                   = 443
-  protocol                  = "tcp"
-  source_security_group_id  = aws_security_group.alb_sg.id
-  description               = "HTTPS from ALB"
+  type                     = "ingress"
+  security_group_id        = aws_security_group.app_sg.id
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.alb_sg.id
+  description              = "HTTPS from ALB"
 }
 
 # Ingress 22 from Bastion SG
 resource "aws_security_group_rule" "app_ingress_ssh_from_bastion" {
-  type                      = "ingress"
-  security_group_id         = aws_security_group.app_sg.id
-  from_port                 = 22
-  to_port                   = 22
-  protocol                  = "tcp"
-  source_security_group_id  = aws_security_group.bastion_sg.id
-  description               = "SSH from Bastion"
+  type                     = "ingress"
+  security_group_id        = aws_security_group.app_sg.id
+  from_port                = 22
+  to_port                  = 22
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.bastion_sg.id
+  description              = "SSH from Bastion"
 }
 
-# Egress DB port to DB SG (e.g., MySQL 3306; switch to 5432 for Postgres)
-resource "aws_security_group_rule" "app_egress_db" {
-  type                      = "egress"
-  security_group_id         = aws_security_group.app_sg.id
-  from_port                 = 5432
-  to_port                   = 5432
-  protocol                  = "tcp"
-  source_security_group_id  = aws_security_group.db_sg.id
-  description               = "DB port to DB tier"
-}
+# # Egress DB port to DB SG (e.g., MySQL 3306; switch to 5432 for Postgres)
+# resource "aws_security_group_rule" "app_egress_db" {
+#   type                     = "egress"
+#   security_group_id        = aws_security_group.app_sg.id
+#   from_port                = 5432
+#   to_port                  = 5432
+#   protocol                 = "tcp"
+#   source_security_group_id = aws_security_group.db_sg.id
+#   description              = "DB port to DB tier"
+# }
 
 # General outbound (updates, APIs) via NAT
 resource "aws_security_group_rule" "app_egress_any_inet" {
@@ -292,19 +242,17 @@ resource "aws_security_group_rule" "app_egress_any_inet" {
   description       = "General egress via NAT"
 }
 
-
 #DB rules
 # Ingress DB port from App SG; no egress (most isolated)
 resource "aws_security_group_rule" "db_ingress_from_app" {
-  type                      = "ingress"
-  security_group_id         = aws_security_group.db_sg.id
-  from_port                 = 5432
-  to_port                   = 5432
-  protocol                  = "tcp"
-  source_security_group_id  = aws_security_group.app_sg.id
-  description               = "DB port from App tier"
+  type                     = "ingress"
+  security_group_id        = aws_security_group.db_sg.id
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.app_sg.id
+  description              = "DB port from App tier"
 }
-
 
 # --- Bastion rules ---
 resource "aws_security_group_rule" "bastion_ingress_ssh_from_admin" {
@@ -318,13 +266,13 @@ resource "aws_security_group_rule" "bastion_ingress_ssh_from_admin" {
 }
 
 resource "aws_security_group_rule" "bastion_egress_ssh_to_app" {
-  type                      = "egress"
-  security_group_id         = aws_security_group.bastion_sg.id
-  from_port                 = 22
-  to_port                   = 22
-  protocol                  = "tcp"
-  source_security_group_id  = aws_security_group.app_sg.id
-  description               = "SSH to App"
+  type                     = "egress"
+  security_group_id        = aws_security_group.bastion_sg.id
+  from_port                = 22
+  to_port                  = 22
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.app_sg.id
+  description              = "SSH to App"
 }
 
 # Optional: allow package updates from bastion
@@ -337,6 +285,7 @@ resource "aws_security_group_rule" "bastion_egress_https" {
   cidr_blocks       = ["0.0.0.0/0"]
   description       = "HTTPS to Internet"
 }
+
 resource "aws_security_group_rule" "bastion_egress_http" {
   type              = "egress"
   security_group_id = aws_security_group.bastion_sg.id
@@ -350,14 +299,15 @@ resource "aws_security_group_rule" "bastion_egress_http" {
 
 # ------- NACLS -------
 
-resource "aws_network_acl" "public" {
+# Presentation layer NACLS
+resource "aws_network_acl" "public_nacl" {
   vpc_id = aws_vpc.assignment1_vpc.id
   tags   = { Name = "${local.name_prefix}-public-nacl" }
 }
 
 # Inbound from Internet (clients)
 resource "aws_network_acl_rule" "public_in_http" {
-  network_acl_id = aws_network_acl.public.id
+  network_acl_id = aws_network_acl.public_nacl.id
   rule_number    = 100
   egress         = false
   protocol       = "tcp"
@@ -366,8 +316,9 @@ resource "aws_network_acl_rule" "public_in_http" {
   from_port      = 80
   to_port        = 80
 }
+
 resource "aws_network_acl_rule" "public_in_https" {
-  network_acl_id = aws_network_acl.public.id
+  network_acl_id = aws_network_acl.public_nacl.id
   rule_number    = 110
   egress         = false
   protocol       = "tcp"
@@ -377,21 +328,9 @@ resource "aws_network_acl_rule" "public_in_https" {
   to_port        = 443
 }
 
-# Inbound ephemeral from VPC (responses from app to ALB)
-resource "aws_network_acl_rule" "public_in_ephemeral_from_vpc" {
-  network_acl_id = aws_network_acl.public.id
-  rule_number    = 120
-  egress         = false
-  protocol       = "tcp"
-  rule_action    = "allow"
-  cidr_block     = var.vpc_cidr
-  from_port      = local.ephemeral_from
-  to_port        = local.ephemeral_to
-}
-
 # Outbound to Internet (requests + replies)
 resource "aws_network_acl_rule" "public_out_http" {
-  network_acl_id = aws_network_acl.public.id
+  network_acl_id = aws_network_acl.public_nacl.id
   rule_number    = 200
   egress         = true
   protocol       = "tcp"
@@ -400,8 +339,9 @@ resource "aws_network_acl_rule" "public_out_http" {
   from_port      = 80
   to_port        = 80
 }
+
 resource "aws_network_acl_rule" "public_out_https" {
-  network_acl_id = aws_network_acl.public.id
+  network_acl_id = aws_network_acl.public_nacl.id
   rule_number    = 210
   egress         = true
   protocol       = "tcp"
@@ -410,8 +350,9 @@ resource "aws_network_acl_rule" "public_out_https" {
   from_port      = 443
   to_port        = 443
 }
+
 resource "aws_network_acl_rule" "public_out_ephemeral" {
-  network_acl_id = aws_network_acl.public.id
+  network_acl_id = aws_network_acl.public_nacl.id
   rule_number    = 220
   egress         = true
   protocol       = "tcp"
@@ -423,22 +364,23 @@ resource "aws_network_acl_rule" "public_out_ephemeral" {
 
 # Associate to all public subnets
 resource "aws_network_acl_association" "public_assoc" {
-  for_each       = aws_subnet.public
+  for_each       = aws_subnet.public_subnet
   subnet_id      = each.value.id
-  network_acl_id = aws_network_acl.public.id
+  network_acl_id = aws_network_acl.public_nacl.id
 }
 
-###########################
-# APP NACL (private app)
-###########################
-resource "aws_network_acl" "app" {
+
+
+# ----- Application layer NACLS -----
+
+resource "aws_network_acl" "app_nacl" {
   vpc_id = aws_vpc.assignment1_vpc.id
   tags   = { Name = "${local.name_prefix}-app-nacl" }
 }
 
 # Inbound from VPC (ALB + Bastion live in the VPC too)
 resource "aws_network_acl_rule" "app_in_http_from_vpc" {
-  network_acl_id = aws_network_acl.app.id
+  network_acl_id = aws_network_acl.app_nacl.id
   rule_number    = 100
   egress         = false
   protocol       = "tcp"
@@ -447,8 +389,9 @@ resource "aws_network_acl_rule" "app_in_http_from_vpc" {
   from_port      = 80
   to_port        = 80
 }
+
 resource "aws_network_acl_rule" "app_in_https_from_vpc" {
-  network_acl_id = aws_network_acl.app.id
+  network_acl_id = aws_network_acl.app_nacl.id
   rule_number    = 110
   egress         = false
   protocol       = "tcp"
@@ -457,8 +400,9 @@ resource "aws_network_acl_rule" "app_in_https_from_vpc" {
   from_port      = 443
   to_port        = 443
 }
+
 resource "aws_network_acl_rule" "app_in_ssh_from_vpc" {
-  network_acl_id = aws_network_acl.app.id
+  network_acl_id = aws_network_acl.app_nacl.id
   rule_number    = 120
   egress         = false
   protocol       = "tcp"
@@ -470,7 +414,7 @@ resource "aws_network_acl_rule" "app_in_ssh_from_vpc" {
 
 # Inbound ephemeral from VPC (responses)
 resource "aws_network_acl_rule" "app_in_ephemeral_from_vpc" {
-  network_acl_id = aws_network_acl.app.id
+  network_acl_id = aws_network_acl.app_nacl.id
   rule_number    = 130
   egress         = false
   protocol       = "tcp"
@@ -482,7 +426,7 @@ resource "aws_network_acl_rule" "app_in_ephemeral_from_vpc" {
 
 # Outbound to Internet (via NAT) and to DB
 resource "aws_network_acl_rule" "app_out_http_inet" {
-  network_acl_id = aws_network_acl.app.id
+  network_acl_id = aws_network_acl.app_nacl.id
   rule_number    = 200
   egress         = true
   protocol       = "tcp"
@@ -491,8 +435,9 @@ resource "aws_network_acl_rule" "app_out_http_inet" {
   from_port      = 80
   to_port        = 80
 }
+
 resource "aws_network_acl_rule" "app_out_https_inet" {
-  network_acl_id = aws_network_acl.app.id
+  network_acl_id = aws_network_acl.app_nacl.id
   rule_number    = 210
   egress         = true
   protocol       = "tcp"
@@ -501,8 +446,9 @@ resource "aws_network_acl_rule" "app_out_https_inet" {
   from_port      = 443
   to_port        = 443
 }
+
 resource "aws_network_acl_rule" "app_out_db_to_vpc" {
-  network_acl_id = aws_network_acl.app.id
+  network_acl_id = aws_network_acl.app_nacl.id
   rule_number    = 220
   egress         = true
   protocol       = "tcp"
@@ -511,8 +457,9 @@ resource "aws_network_acl_rule" "app_out_db_to_vpc" {
   from_port      = 5432
   to_port        = 5432
 }
+
 resource "aws_network_acl_rule" "app_out_ephemeral_to_vpc" {
-  network_acl_id = aws_network_acl.app.id
+  network_acl_id = aws_network_acl.app_nacl.id
   rule_number    = 230
   egress         = true
   protocol       = "tcp"
@@ -524,22 +471,22 @@ resource "aws_network_acl_rule" "app_out_ephemeral_to_vpc" {
 
 # Associate to all app subnets
 resource "aws_network_acl_association" "app_assoc" {
-  for_each       = aws_subnet.private_app
+  for_each       = aws_subnet.private_subnet
   subnet_id      = each.value.id
-  network_acl_id = aws_network_acl.app.id
+  network_acl_id = aws_network_acl.app_nacl.id
 }
 
-############################
-# DATA NACL (private data)
-############################
-resource "aws_network_acl" "data" {
+
+# ----- DATABASE NACL  -----
+
+resource "aws_network_acl" "database_nacl" {
   vpc_id = aws_vpc.assignment1_vpc.id
   tags   = { Name = "${local.name_prefix}-data-nacl" }
 }
 
 # Inbound DB from VPC (app servers live in VPC)
 resource "aws_network_acl_rule" "data_in_db_from_vpc" {
-  network_acl_id = aws_network_acl.data.id
+  network_acl_id = aws_network_acl.database_nacl.id
   rule_number    = 100
   egress         = false
   protocol       = "tcp"
@@ -551,7 +498,7 @@ resource "aws_network_acl_rule" "data_in_db_from_vpc" {
 
 # Outbound ephemeral to VPC (responses)
 resource "aws_network_acl_rule" "data_out_ephemeral_to_vpc" {
-  network_acl_id = aws_network_acl.data.id
+  network_acl_id = aws_network_acl.database_nacl.id
   rule_number    = 200
   egress         = true
   protocol       = "tcp"
@@ -563,7 +510,7 @@ resource "aws_network_acl_rule" "data_out_ephemeral_to_vpc" {
 
 # Associate to all data subnets
 resource "aws_network_acl_association" "data_assoc" {
-  for_each       = aws_subnet.private_data
+  for_each       = aws_subnet.private_data_subnet
   subnet_id      = each.value.id
-  network_acl_id = aws_network_acl.data.id
+  network_acl_id = aws_network_acl.database_nacl.id
 }

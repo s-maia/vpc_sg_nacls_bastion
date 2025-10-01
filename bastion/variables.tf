@@ -9,13 +9,13 @@ variable "environment" {
 }
 
 variable "instance_type" {
-    type = string
-    default = "t3.micro"
+  type    = string
+  default = "t3.micro"
 }
 
 variable "ssh_key_name" {
-    type = string
-    default = null
+  type    = string
+  default = null
 }
 
 variable "public_subnet_id" {

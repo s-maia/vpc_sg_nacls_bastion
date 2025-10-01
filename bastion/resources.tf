@@ -8,16 +8,15 @@ data "aws_ami" "al2023" {
   }
 }
 
-
 resource "aws_instance" "bastion" {
-  ami                         = data.aws_ami.al2023.id
-  instance_type               = var.instance_type
+  ami                    = data.aws_ami.al2023.id
+  instance_type          = var.instance_type
   subnet_id              = var.public_subnet_id
-  vpc_security_group_ids      = [var.bastion_sg_id]
-  iam_instance_profile        = aws_iam_instance_profile.bastion_profile.name
-  key_name                    = var.ssh_key_name
+  vpc_security_group_ids = [var.bastion_sg_id]
+  iam_instance_profile   = aws_iam_instance_profile.bastion_profile.name
+  key_name               = var.ssh_key_name
 
-   user_data = <<-EOF
+  user_data = <<-EOF
     #!/bin/bash
     set -euo pipefail
     sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
