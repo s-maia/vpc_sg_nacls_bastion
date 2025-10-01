@@ -10,11 +10,11 @@ terraform {
     }
   }
 
-   backend "s3" {
-    bucket = "megazonecloud-s3"
-    key    = "prod/infra-root/terraform.tfstate"
-    region = "us-east-1"
-    encrypt        = true               # <- SSE on the state object
-    use_lockfile  = true
+  backend "s3" {
+    bucket       = "megazonecloud-s3"
+    key          = "prod/infra-root/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true # <- SSE on the state object
+    use_lockfile = true
   }
 }

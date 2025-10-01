@@ -49,10 +49,6 @@ variable "admin_cidrs" {
   description = "Trusted admin public CIDRs for SSH"
 }
 
-# variable "app_sg" {
-#   type = string
-# }
-
 variable "instance_type" {
   type    = string
   default = "t3.micro"
