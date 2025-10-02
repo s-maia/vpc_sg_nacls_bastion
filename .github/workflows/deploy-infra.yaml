@@ -34,7 +34,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4.1.0
         with:
           aws-region: ${{ vars.AWS_REGION }}
-          role-to-assume: ${{ vars.IAM_ROLE }}
+          role-to-assume: ${{ secrets.IAM_ROLE }}
           role-session-name: infra-runner-session
 
       - name: Terraform Init
