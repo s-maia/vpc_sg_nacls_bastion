@@ -43,3 +43,8 @@ variable "private_data_subnet_cidrs" {
     error_message = "private_data_subnet_cidrs must match the number of availability_zone."
   }
 }
+
+variable "admin_cidrs" {
+  type        = list(string)
+  description = "Trusted admin public CIDRs for SSH"
+}

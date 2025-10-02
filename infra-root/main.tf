@@ -7,6 +7,7 @@ module "vpc" {
   availability_zone         = var.availability_zone
   project                   = var.project
   environment               = var.environment
+  admin_cidrs               = var.admin_cidrs
 }
 
 module "bastion" {
@@ -17,5 +18,4 @@ module "bastion" {
   ssh_key_name     = var.ssh_key_name
   public_subnet_id = module.vpc.public_subnet_ids[0]
   bastion_sg_id    = module.vpc.bastion_sg_id
-  admin_cidrs      = var.admin_cidrs
 }

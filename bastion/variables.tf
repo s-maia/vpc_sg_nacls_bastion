@@ -27,8 +27,3 @@ variable "bastion_sg_id" {
   type        = string
   description = "Security Group ID to attach to bastion"
 }
-
-variable "admin_cidrs" {
-  type        = list(string)
-  description = "Trusted admin public CIDRs for SSH"
-}
