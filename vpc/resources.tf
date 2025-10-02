@@ -5,7 +5,7 @@ resource "aws_vpc" "assignment1_vpc" {
   enable_dns_support   = true
 
   tags = {
-    Name        = "${var.project}-${var.environment}-vpc"
+    Name = "${var.project}-${var.environment}-vpc"
   }
 }
 
@@ -19,9 +19,9 @@ resource "aws_subnet" "public_subnet" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "${var.project}-${var.environment}-public-${each.value.az}"
-    Tier        = "public"
-    AZ          = each.value.az
+    Name = "${var.project}-${var.environment}-public-${each.value.az}"
+    Tier = "public"
+    AZ   = each.value.az
   }
 }
 
@@ -35,9 +35,9 @@ resource "aws_subnet" "private_subnet" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name        = "${var.project}-${var.environment}-app-${each.value.az}"
-    Tier        = "app"
-    AZ          = each.value.az
+    Name = "${var.project}-${var.environment}-app-${each.value.az}"
+    Tier = "app"
+    AZ   = each.value.az
   }
 }
 
@@ -51,9 +51,9 @@ resource "aws_subnet" "private_data_subnet" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name        = "${var.project}-${var.environment}-data-${each.value.az}"
-    Tier        = "data"
-    AZ          = each.value.az
+    Name = "${var.project}-${var.environment}-data-${each.value.az}"
+    Tier = "data"
+    AZ   = each.value.az
   }
 }
 
@@ -108,7 +108,7 @@ resource "aws_nat_gateway" "nat_gateway" {
 resource "aws_route_table" "app_rt" {
   for_each = aws_subnet.private_subnet
   vpc_id   = aws_vpc.assignment1_vpc.id
-  tags = { Name = "${local.name_prefix}-rtb-app-${each.key}" }
+  tags     = { Name = "${local.name_prefix}-rtb-app-${each.key}" }
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.nat_gateway[each.key].id
