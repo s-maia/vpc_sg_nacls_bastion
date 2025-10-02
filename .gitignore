@@ -2,8 +2,6 @@
 **/.terraform/*
 *.tfstate
 *.tfstate.*
-*.tfvars
-*.tfvars.json
 
 # Ignore override files
 override.tf
