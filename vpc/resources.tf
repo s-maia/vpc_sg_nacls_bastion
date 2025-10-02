@@ -205,7 +205,7 @@ resource "aws_security_group_rule" "alb_egress_to_app_https" {
   to_port                  = 443
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.app_sg.id
-  description              = "ALB -> App HTTPS"
+  description              = "ALB to App HTTPS"
 }
 
 #App rules
