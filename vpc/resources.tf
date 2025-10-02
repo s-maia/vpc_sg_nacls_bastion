@@ -266,16 +266,6 @@ resource "aws_security_group_rule" "db_ingress_from_app" {
   description              = "DB port from App tier"
 }
 
-# Egress: DB port to DB SG
-resource "aws_security_group_rule" "app_egress_db" {
-  type                     = "egress"
-  security_group_id        = aws_security_group.app_sg.id
-  from_port                = 5432
-  to_port                  = 5432
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.db_sg.id
-  description              = "DB port to DB tier"
-}
 
 # --- Bastion rules ---
 resource "aws_security_group_rule" "bastion_ingress_ssh_from_admin" {
