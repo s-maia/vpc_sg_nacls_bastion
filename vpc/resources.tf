@@ -187,15 +187,15 @@ resource "aws_security_group_rule" "alb_ingress_https" {
   description       = "HTTPS from Internet"
 }
 
-resource "aws_security_group_rule" "app_ingress_http_from_alb" {
-  type                     = "ingress"
-  security_group_id        = aws_security_group.app_sg.id
-  from_port                = 80
-  to_port                  = 80
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.alb_sg.id
-  description              = "HTTP from ALB (health checks)"
-}
+# resource "aws_security_group_rule" "app_ingress_http_from_alb" {
+#   type                     = "ingress"
+#   security_group_id        = aws_security_group.app_sg.id
+#   from_port                = 80
+#   to_port                  = 80
+#   protocol                 = "tcp"
+#   source_security_group_id = aws_security_group.alb_sg.id
+#   description              = "HTTP from ALB (health checks)"
+# }
 
 #App rules
 # Ingress 443 from ALB SG
@@ -220,28 +220,27 @@ resource "aws_security_group_rule" "app_ingress_ssh_from_bastion" {
   description              = "SSH from Bastion"
 }
 
-# # Egress DB port to DB SG (e.g., MySQL 3306; switch to 5432 for Postgres)
-# resource "aws_security_group_rule" "app_egress_db" {
-#   type                     = "egress"
-#   security_group_id        = aws_security_group.app_sg.id
-#   from_port                = 5432
-#   to_port                  = 5432
-#   protocol                 = "tcp"
-#   source_security_group_id = aws_security_group.db_sg.id
-#   description              = "DB port to DB tier"
-# }
-
-# General outbound (updates, APIs) via NAT
-resource "aws_security_group_rule" "app_egress_any_inet" {
+# Egress: HTTPS to Internet (via NAT)
+resource "aws_security_group_rule" "app_egress_https_inet" {
   type              = "egress"
   security_group_id = aws_security_group.app_sg.id
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
-  description       = "General egress via NAT"
+  description       = "HTTPS to Internet via NAT"
 }
 
+# HTTP (package repos, etc.)
+resource "aws_security_group_rule" "app_egress_http_inet" {
+  type              = "egress"
+  security_group_id = aws_security_group.app_sg.id
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  description       = "HTTP to Internet via NAT (if needed)"
+}
 #DB rules
 # Ingress DB port from App SG; no egress (most isolated)
 resource "aws_security_group_rule" "db_ingress_from_app" {
@@ -253,6 +252,18 @@ resource "aws_security_group_rule" "db_ingress_from_app" {
   source_security_group_id = aws_security_group.app_sg.id
   description              = "DB port from App tier"
 }
+
+# Egress: DB port to DB SG (ONLY if app needs to reach DB)
+resource "aws_security_group_rule" "app_egress_db" {
+  type                     = "egress"
+  security_group_id        = aws_security_group.app_sg.id
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.db_sg.id
+  description              = "DB port to DB tier"
+}
+
 
 # --- Bastion rules ---
 resource "aws_security_group_rule" "bastion_ingress_ssh_from_admin" {

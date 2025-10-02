@@ -2,9 +2,6 @@ project     = "cicd-assignment"
 environment = "production"
 aws_region  = "us-east-1"
 
-# github_org   = "s-maia"
-# github_repo  = "Terraform-megazone"
-
 availability_zone         = ["us-east-1a", "us-east-1b"]
 vpc_cidr                  = "10.10.0.0/16"
 public_subnet_cidrs       = ["10.10.0.0/24", "10.10.1.0/24"]
