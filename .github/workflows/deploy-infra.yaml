@@ -38,13 +38,16 @@ jobs:
           role-session-name: infra-runner-session
 
       - name: Terraform Init
-        run: terraform init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
-
+        run: |
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+          terraform init -backend-config="bucket=${AWS_ACCOUNT_ID}-state-bucket-${ENVIRONMENT_STAGE}" -backend-config="key=${GITHUB_REF#refs/heads/}.tfstate"
+      
       - name: Terraform Format Check
         run: terraform fmt -check
 
       - name: Terraform Plan
-        run: terraform plan -var-file="${{ vars.STAGE }}.tfvars" -input=false
+        run: terraform plan -input=false -var-file=${ENVIRONMENT_STAGE}.tfvars
 
-    #   - name: Terraform Apply
-    #     run: terraform apply -var-file="${{ vars.STAGE }}.tfvars" -input=false -auto-approve
+      # Build infrastructure according to Terraform configuration files
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false -var-file=${ENVIRONMENT_STAGE}.tfvars
