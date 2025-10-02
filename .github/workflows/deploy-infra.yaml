@@ -1,0 +1,50 @@
+# This is a basic workflow to help you get started with Actions
+name: 'Workflow - Deploy on multi-account AWS with Terraform'
+
+on:
+  push:
+    branches:
+    - main
+    - staging
+    - feature/**
+
+# required permissions by GitHub Actions for assuming AWS IAM role    
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+
+jobs:
+  terraform-deploy:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-22.04
+    environment: ${{ (github.ref == 'refs/heads/main' && 'production') || (github.ref == 'refs/heads/staging' && 'staging') || 'dev' }}
+
+    defaults:
+      run:
+        working-directory: ./infra-root
+
+    steps:
+      - uses: actions/checkout@v4
+
+
+
+    # login to AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4.1.0
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ vars.IAM_ROLE }}
+          role-session-name: infra-runner-session
+
+      - name: Terraform Init
+        run: terraform init -backend-config="bucket=megazonecloud-s3"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Plan
+        run: terraform plan -var-file="${{ vars.STAGE }}.tfvars" -input=false
+
+    #   - name: Terraform Apply
+    #     run: terraform apply -var-file="${{ vars.STAGE }}.tfvars" -input=false -auto-approve
