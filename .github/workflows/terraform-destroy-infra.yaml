@@ -1,41 +1,41 @@
-# name: Terraform Destroy
-# on:
-#   workflow_dispatch:
-#     inputs:
-#       stage:
-#         description: dev|staging|production
-#         required: true
-#         default: production
-#       confirm:
-#         description: 'Type "DESTROY" to confirm'
-#         required: true
-#         default: DESTROY
-# permissions:
-#   id-token: write
-#   contents: read
-# jobs:
-#   destroy:
-#     runs-on: ubuntu-22.04
-#     environment: ${{ inputs.stage == 'production' && 'production' || (inputs.stage == 'staging' && 'staging' || 'dev') }}
-#     env:
-#       AWS_REGION: ${{ vars.AWS_REGION }}
-#       ENVIRONMENT_STAGE: ${{ inputs.stage }}
-#     defaults:
-#       run:
-#         working-directory: ./infra-root
-#     steps:
-#       - uses: actions/checkout@v4
-#       - uses: aws-actions/configure-aws-credentials@v4.1.0
-#         with:
-#           aws-region: ${{ env.AWS_REGION }}
-#           role-to-assume: ${{ secrets.IAM_ROLE }}
-#       - name: Validate
-#         run: test "${{ inputs.confirm }}" = "DESTROY"
-#       - name: Init (same backend)
-#         run: |
-#           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
-#           terraform init \
-#             -backend-config="bucket=${AWS_ACCOUNT_ID}-state-bucket-${ENVIRONMENT_STAGE}" \
-#             -backend-config="region=${AWS_REGION}"
-#       - name: Destroy
-#         run: terraform destroy -auto-approve -input=false -var-file="${ENVIRONMENT_STAGE}.tfvars"
+name: Terraform Destroy
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: dev|staging|production
+        required: true
+        default: production
+      confirm:
+        description: 'Type "DESTROY" to confirm'
+        required: true
+        default: DESTROY
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  destroy:
+    runs-on: ubuntu-22.04
+    environment: ${{ inputs.stage == 'production' && 'production' || (inputs.stage == 'staging' && 'staging' || 'dev') }}
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ENVIRONMENT_STAGE: ${{ inputs.stage }}
+    defaults:
+      run:
+        working-directory: ./infra-root
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4.1.0
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.IAM_ROLE }}
+      - name: Validate
+        run: test "${{ inputs.confirm }}" = "DESTROY"
+      - name: Init (same backend)
+        run: |
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+          terraform init \
+            -backend-config="bucket=${AWS_ACCOUNT_ID}-state-bucket-${ENVIRONMENT_STAGE}" \
+            -backend-config="region=${AWS_REGION}"
+      - name: Destroy
+        run: terraform destroy -auto-approve -input=false -var-file="${ENVIRONMENT_STAGE}.tfvars"

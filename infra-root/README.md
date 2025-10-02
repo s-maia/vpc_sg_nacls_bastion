@@ -126,7 +126,7 @@ All required status checks must pass (e.g., Terraform fmt/plan, tests) before th
 If Environment required reviewers are configured for staging/production, the workflow pauses at deployment time until reviewers approve.
 
 
-** Flow **
+<How to deploy infrastructure>
 
 1) Work on a feature branch
 
