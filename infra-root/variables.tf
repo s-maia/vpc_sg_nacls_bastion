@@ -58,3 +58,7 @@ variable "ssh_key_name" {
   type    = string
   default = null
 }
+
+variable "table_name" {
+  type = string
+}
