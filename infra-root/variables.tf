@@ -50,7 +50,7 @@ variable "admin_cidrs" {
 }
 
 variable "instance_type" {
-  type    = string
+  type = string
   # default = "t3.micro"
 }
 
