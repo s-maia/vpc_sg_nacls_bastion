@@ -19,12 +19,3 @@ module "bastion" {
   public_subnet_id = module.vpc.public_subnet_ids[0]
   bastion_sg_id    = module.vpc.bastion_sg_id
 }
-
-# module "webhook_states_table" {
-#   source         = "../dynamodb_table"
-#   table_name     = var.table_name
-#   main_table_key = "id"
-#   environment    = var.environment
-#   project        = var.project
-#   table_billing  = "PAY_PER_REQUEST"
-# }
