@@ -20,11 +20,11 @@ module "bastion" {
   bastion_sg_id    = module.vpc.bastion_sg_id
 }
 
-module "webhook_states_table" {
-  source         = "../dynamodb_table"
-  table_name     = var.table_name
-  main_table_key = "id"
-  environment    = var.environment
-  project        = var.project
-  table_billing  = "PAY_PER_REQUEST"
-}
+# module "webhook_states_table" {
+#   source         = "../dynamodb_table"
+#   table_name     = var.table_name
+#   main_table_key = "id"
+#   environment    = var.environment
+#   project        = var.project
+#   table_billing  = "PAY_PER_REQUEST"
+# }
