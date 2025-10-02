@@ -10,7 +10,7 @@ variable "environment" {
 
 variable "instance_type" {
   type    = string
-  default = "t3.micro"
+  # default = "t3.micro"
 }
 
 variable "ssh_key_name" {
@@ -26,4 +26,9 @@ variable "public_subnet_id" {
 variable "bastion_sg_id" {
   type        = string
   description = "Security Group ID to attach to bastion"
+}
+
+variable "admin_cidrs" {
+  type        = list(string)
+  description = "Trusted admin public CIDRs for SSH"
 }

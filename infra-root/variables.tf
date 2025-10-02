@@ -51,7 +51,7 @@ variable "admin_cidrs" {
 
 variable "instance_type" {
   type    = string
-  default = "t3.micro"
+  # default = "t3.micro"
 }
 
 variable "ssh_key_name" {
