@@ -35,7 +35,7 @@ jobs:
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ vars.IAM_ROLE }}
-          role-session-name: runner-session
+          role-session-name: infra-runner-session
 
       - name: Terraform Init
         run: terraform init -backend-config="bucket=megazonecloud-s3"
