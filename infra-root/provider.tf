@@ -11,9 +11,9 @@ terraform {
   }
 
   backend "s3" {
-    # bucket       = "megazonecloud-s3"
-    # key          = "prod/infra-root/terraform.tfstate"
-    # region       = "us-east-1"
-    # use_lockfile = true
+    # bucket       = "VALUE COMES FROM -backend-config option"
+    key          = "terraform.tfstate"
+    region       = "us-east-1"
+    use_lockfile = true #S3 native locking
   }
 }
