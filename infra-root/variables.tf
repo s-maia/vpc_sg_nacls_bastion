@@ -44,10 +44,10 @@ variable "private_data_subnet_cidrs" {
   }
 }
 
-variable "admin_cidrs" {
-  type        = list(string)
-  description = "Trusted admin public CIDRs for SSH"
-}
+# variable "admin_cidrs" {
+#   type        = list(string)
+#   description = "Trusted admin public CIDRs for SSH"
+# }
 
 variable "instance_type" {
   type = string
