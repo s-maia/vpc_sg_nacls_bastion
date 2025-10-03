@@ -16,12 +16,12 @@ Implements a production-grade 3-tier layout (Public / Private-App / Private-Data
 
 
 Repository layout
+
 .
 ├── .github/workflows/        # CI/CD pipelines
-├── bastion/                  # Bastion module (EC2, IAM role/profile, SG)
-│   ├── bastion_iam.tf
+├── bastion/                  # Bastion module (EC2 via SSH key,)
 │   ├── locals.tf
-│   ├── resources.tf
+│   ├── resources.tf          # EC2 + user_data hardening (no password SSH)
 │   └── variables.tf
 ├── vpc/                      # VPC module (VPC, subnets, RTs, IGW, NAT, NACLs, SGs)
 │   ├── locals.tf
@@ -29,57 +29,59 @@ Repository layout
 │   ├── resources.tf
 │   └── variables.tf
 └── infra-root/               # Root module (wires modules + backend/vars)
-    ├── dev.tfvars
-    ├── staging.tfvars
-    ├── production.tfvars
-    ├── main.tf
-    ├── provider.tf
-    ├── variables.tf
+    ├── dev.tfvars | staging.tfvars | production.tfvars
+    ├── main.tf | provider.tf | variables.tf
     └── README.md  (this file)
+
 
 
 📦  <What gets created>
 1) VPC with DNS support
 2) Subnets per AZ: Public, Private-App, Private-Data
-3) Routing: Public RT → IGW; App/Data RTs → NAT GW in the same AZ
+3) Routing: Public RT → IGW; App RTs → NAT in same AZ; Data RTs no internet
 4) IGW, 2× NAT Gateways (one per AZ) + EIPs
-5) Network ACLs (public/app/data) with explicit ingress/egress
+5) NACLs: public/app/data with explicit allow rules (stateless)
 6) Security Groups:
-    * alb_sg — ingress 443 from Internet; egress to App
-    * app_sg — ingress 80/443 from ALB and 22 from Bastion; egress 443 to Internet (via NAT) and 5432 to DB
-    * db_sg — ingress 5432 only from App; minimal egress
-    * bastion_sg — ingress 22 from admin IP(s); egress 22 to App and 80/443 to Internet
-7) Bastion EC2 (Amazon Linux 2023) with IAM Role/Instance Profile (SSM Core), tags, and SG wiring
+    * alb_sg — ingress 443 from Internet; egress 443 to App SG
+    * app_sg — ingress 443 from ALB SG + 22 from Bastion SG; egress 443 to Internet (via NAT) + 5432 to DB SG
+    * db_sg — ingress 5432 only from App SG; no egress (most restrictive)
+    * bastion_sg — ingress 22 from admin_cidrs; egress 22 to App SG + 80/443 to Internet (updates)
+7) Bastion EC2 (Amazon Linux 2023), key-only SSH,IMDSv2 required, SSH password auth disabled via user_data
 
 
 🔐  <Security groups>
 
 * ALB SG
 Ingress: 443 from 0.0.0.0/0
-Egress: to App SG (80/443)
+Egress: 443 to app_sg (ALB → App TLS)
 
 * App SG
-Ingress: 80/443 from ALB SG; 22 from Bastion SG
-Egress: 443 to Internet (via NAT) and 5432 to DB SG
+Ingress: 443 from alb_sg, 22 from bastion_sg
+Egress: 443 to Internet (via NAT), 5432 to db_sg
 
 * DB SG
-Ingress: 5432 from App SG only (no Internet)
+Ingress: 5432 from app_sg only
+Egress: none (isolation)
 
 * Bastion SG
-Ingress: 22 from admin IPs (e.g., 45.30.54.169/32)
-Egress: 22 to App SG; 80/443 to Internet
+Ingress: 22 from admin_cidrs (my home IP /32)
+Egress: 22 to app_sg, 80/443 to Internet (updates, repos)
 
 
 🔒 <NACLs (stateless)>
 
-* Public NACL — In: 80/443 from Internet; Out: ephemeral 1024–65535
-
-* App NACL — In: 80/443 from Public; 22 from Bastion. Out: 443 to Internet via NAT + ephemeral return
-
-* Data NACL — In: 5432 from App; Out: ephemeral return
+* Inbound: 80/443 from Internet; 22 from admin_cidrs; ephemeral 1024–65535 from Internet (return traffic); 
+  Outbound: 80/443 to Internet; 443 to VPC (ALB→App); ephemeral 1024–65535 to Internet
 
 
-Note: NACLs are stateless: always allow the return ephemeral ports on the opposite side.
+* Inbound: 443 from VPC (ALB), 22 from VPC (Bastion), ephemeral from VPC
+  Outbound: 80/443 to Internet (via NAT), 5432 to VPC (DB), ephemeral to VPC
+
+* Inbound: 5432 from VPC (App)
+  Outbound: ephemeral to VPC (DB responses)
+
+
+Note: Because NACLs are stateless, the return path must be explicitly allowed (that’s why the ephemeral rules exist).
 
 
 
@@ -139,26 +141,17 @@ Review the Terraform plan and, if your process allows, run apply for dev (manual
 
 Validate the change end-to-end in dev until it looks good.
 
-2) Open a PR into staging
+2) Open a PR into staging/production
 
 This promotes your change toward the staging environment.
 
 3) Ensure all required checks pass
 
-e.g., Terraform fmt/plan, linters, unit tests, etc.
+e.g., Terraform fmt/plan, unit tests, etc.
 
-4) Obtain 3 approvals (staging)
+4) Obtain 3 approvals (staging/production)
 
-Branch protection requires 3 PR approvals before merging to staging.
+Branch protection requires 3 PR approvals before merging to staging/production.
 
-5) Merge → push triggers the staging workflow
+5) Merge 
 
-The pipeline runs for staging. If you use Environment required reviewers, the job will pause there until approved.
-
-6) Promote to production
-
-Open a PR from staging → main.
-
-All required checks must pass and get 3 approvals again.
-
-Merge → push triggers the production workflow.
