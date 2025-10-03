@@ -44,7 +44,7 @@ variable "private_data_subnet_cidrs" {
   }
 }
 
-output "bastion_sg_id" {
-  description = "Bastion SG ID"
-  value       = aws_security_group.bastion_sg.id
-}
+# variable "admin_cidrs" {
+#   type        = list(string)
+#   description = "Trusted admin public CIDRs for SSH"
+# }

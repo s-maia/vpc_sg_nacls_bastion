@@ -36,7 +36,7 @@ resource "aws_instance" "bastion" {
   ami                    = data.aws_ami.al2023.id
   instance_type          = var.instance_type
   subnet_id              = var.public_subnet_id
-  vpc_security_group_ids = [var.bastion_sg_id]
+  vpc_security_group_ids = [aws_security_group.bastion_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.bastion_profile.name
 
   user_data = <<-EOF
@@ -53,6 +53,6 @@ resource "aws_instance" "bastion" {
   tags = { Name = "${local.name_prefix}-bastion" }
 }
 
-output "bastion_instance_id" { value = aws_instance.bastion.id }
-output "bastion_public_ip" { value = aws_instance.bastion.public_ip }
-output "bastion_private_ip" { value = aws_instance.bastion.private_ip }
+output "bastion_instance_id"  { value = aws_instance.bastion.id }
+output "bastion_public_ip"    { value = aws_instance.bastion.public_ip }
+output "bastion_private_ip"   { value = aws_instance.bastion.private_ip }

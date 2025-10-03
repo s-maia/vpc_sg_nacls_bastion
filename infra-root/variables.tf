@@ -44,6 +44,17 @@ variable "private_data_subnet_cidrs" {
   }
 }
 
+# variable "admin_cidrs" {
+#   type        = list(string)
+#   description = "Trusted admin public CIDRs for SSH"
+# }
+
 variable "instance_type" {
   type = string
+  # default = "t3.micro"
+}
+
+variable "ssh_key_name" {
+  type    = string
+  default = null
 }
