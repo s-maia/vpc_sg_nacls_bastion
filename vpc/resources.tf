@@ -330,12 +330,6 @@ resource "aws_network_acl" "public_nacl" {
 #   network_acl_id = aws_network_acl.public_nacl.id
 # }
 
-# Public NACL
-resource "aws_network_acl" "public_nacl" {
-  vpc_id = aws_vpc.assignment1_vpc.id
-  tags   = { Name = "${local.name_prefix}-public-nacl" }
-}
-
 # INBOUND (from Internet)
 resource "aws_network_acl_rule" "public_in_https" {
   network_acl_id = aws_network_acl.public_nacl.id
