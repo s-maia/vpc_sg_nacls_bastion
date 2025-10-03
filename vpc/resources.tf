@@ -297,6 +297,18 @@ resource "aws_network_acl_rule" "public_in_https" {
   to_port        = 443
 }
 
+# Inbound ephemeral from Internet (responses to bastion's outbound connections)
+resource "aws_network_acl_rule" "public_in_ephemeral" {
+  network_acl_id = aws_network_acl.public_nacl.id
+  rule_number    = 120         # pick a free number; must not collide
+  egress         = false
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = "0.0.0.0/0"
+  from_port      = 1024      
+  to_port        = 65535      
+}
+
 # Outbound ALB to App on 443 (health/data path)
 resource "aws_network_acl_rule" "public_out_to_app_https" {
   network_acl_id = aws_network_acl.public_nacl.id
