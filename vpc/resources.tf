@@ -186,6 +186,16 @@ resource "aws_security_group_rule" "alb_ingress_https" {
   description       = "HTTPS from Internet"
 }
 
+resource "aws_security_group_rule" "app_ingress_http_from_alb" {
+  type                     = "ingress"
+  security_group_id        = aws_security_group.app_sg.id
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.alb_sg.id
+  description              = "HTTP from ALB (health checks)"
+}
+
 # Egress ALB to App on 443 (primary path)
 resource "aws_security_group_rule" "alb_egress_to_app_https" {
   type                     = "egress"
