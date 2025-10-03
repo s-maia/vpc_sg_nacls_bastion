@@ -264,79 +264,18 @@ resource "aws_network_acl" "public_nacl" {
   tags   = { Name = "${local.name_prefix}-public-nacl" }
 }
 
-# # Inbound from Internet
-# resource "aws_network_acl_rule" "public_in_http" {
-#   network_acl_id = aws_network_acl.public_nacl.id
-#   rule_number    = 110
-#   egress         = false
-#   protocol       = "tcp"
-#   rule_action    = "allow"
-#   cidr_block     = "0.0.0.0/0"
-#   from_port      = 80
-#   to_port        = 80
-# }
-
-# resource "aws_network_acl_rule" "public_in_https" {
-#   network_acl_id = aws_network_acl.public_nacl.id
-#   rule_number    = 110
-#   egress         = false
-#   protocol       = "tcp"
-#   rule_action    = "allow"
-#   cidr_block     = "0.0.0.0/0"
-#   from_port      = 443
-#   to_port        = 443
-# }
-
-# # Inbound ephemeral from Internet (responses to bastion's outbound connections)
-# resource "aws_network_acl_rule" "public_in_ephemeral" {
-#   network_acl_id = aws_network_acl.public_nacl.id
-#   rule_number    = 120         # pick a free number; must not collide
-#   egress         = false
-#   protocol       = "tcp"
-#   rule_action    = "allow"
-#   cidr_block     = "0.0.0.0/0"
-#   from_port      = 1024      
-#   to_port        = 65535      
-# }
-
-# # Outbound ALB to App on 443 (health/data path)
-# resource "aws_network_acl_rule" "public_out_to_app_https" {
-#   network_acl_id = aws_network_acl.public_nacl.id
-#   rule_number    = 210
-#   egress         = true
-#   protocol       = "tcp"
-#   rule_action    = "allow"
-#   cidr_block     = var.vpc_cidr
-#   from_port      = 443
-#   to_port        = 443
-# }
-
-# # Outbound to Internet (responses to clients): ephemeral
-# resource "aws_network_acl_rule" "public_out_ephemeral" {
-#   network_acl_id = aws_network_acl.public_nacl.id
-#   rule_number    = 220
-#   egress         = true
-#   protocol       = "tcp"
-#   rule_action    = "allow"
-#   cidr_block     = "0.0.0.0/0"
-#   from_port      = local.ephemeral_from
-#   to_port        = local.ephemeral_to
-# }
-
-# # Associate to all public subnets
-# resource "aws_network_acl_association" "public_assoc" {
-#   for_each       = aws_subnet.public_subnet
-#   subnet_id      = each.value.id
-#   network_acl_id = aws_network_acl.public_nacl.id
-# }
-
-# Public NACL
-resource "aws_network_acl" "public_nacl" {
-  vpc_id = aws_vpc.assignment1_vpc.id
-  tags   = { Name = "${local.name_prefix}-public-nacl" }
+# Inbound from Internet
+resource "aws_network_acl_rule" "public_in_http" {
+  network_acl_id = aws_network_acl.public_nacl.id
+  rule_number    = 100
+  egress         = false
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = "0.0.0.0/0"
+  from_port      = 80
+  to_port        = 80
 }
 
-# INBOUND (from Internet)
 resource "aws_network_acl_rule" "public_in_https" {
   network_acl_id = aws_network_acl.public_nacl.id
   rule_number    = 110
@@ -348,32 +287,19 @@ resource "aws_network_acl_rule" "public_in_https" {
   to_port        = 443
 }
 
-# Needed for return traffic to bastion’s outbound connections (SSM, updates)
+# Inbound ephemeral from Internet (responses to bastion's outbound connections)
 resource "aws_network_acl_rule" "public_in_ephemeral" {
   network_acl_id = aws_network_acl.public_nacl.id
-  rule_number    = 120
+  rule_number    = 120         # pick a free number; must not collide
   egress         = false
   protocol       = "tcp"
   rule_action    = "allow"
   cidr_block     = "0.0.0.0/0"
-  from_port      = 1024
-  to_port        = 65535
+  from_port      = 1024      
+  to_port        = 65535      
 }
 
-# OUTBOUND
-# Required for bastion → SSM endpoints on the Internet
-resource "aws_network_acl_rule" "public_out_https" {
-  network_acl_id = aws_network_acl.public_nacl.id
-  rule_number    = 200
-  egress         = true
-  protocol       = "tcp"
-  rule_action    = "allow"
-  cidr_block     = "0.0.0.0/0"
-  from_port      = 443
-  to_port        = 443
-}
-
-# ALB → App over 443 (traffic from public subnet to private app subnets)
+# Outbound ALB to App on 443 (health/data path)
 resource "aws_network_acl_rule" "public_out_to_app_https" {
   network_acl_id = aws_network_acl.public_nacl.id
   rule_number    = 210
@@ -385,7 +311,7 @@ resource "aws_network_acl_rule" "public_out_to_app_https" {
   to_port        = 443
 }
 
-# Responses from ALB/bastion back to clients on the Internet
+# Outbound to Internet (responses to clients): ephemeral
 resource "aws_network_acl_rule" "public_out_ephemeral" {
   network_acl_id = aws_network_acl.public_nacl.id
   rule_number    = 220
@@ -393,11 +319,11 @@ resource "aws_network_acl_rule" "public_out_ephemeral" {
   protocol       = "tcp"
   rule_action    = "allow"
   cidr_block     = "0.0.0.0/0"
-  from_port      = 1024
-  to_port        = 65535
+  from_port      = local.ephemeral_from
+  to_port        = local.ephemeral_to
 }
 
-# Associate to every public subnet (you likely already have this)
+# Associate to all public subnets
 resource "aws_network_acl_association" "public_assoc" {
   for_each       = aws_subnet.public_subnet
   subnet_id      = each.value.id
