@@ -12,11 +12,6 @@ variable "instance_type" {
   type = string
 }
 
-# variable "ssh_key_name" {
-#   type    = string
-#   default = null
-# }
-
 variable "public_subnet_id" {
   type        = string
   description = "Public subnet ID where the bastion will live"

@@ -219,17 +219,6 @@ resource "aws_security_group_rule" "app_ingress_https_from_alb" {
   description              = "HTTPS from ALB"
 }
 
-# # Ingress 22 from Bastion SG
-# resource "aws_security_group_rule" "app_ingress_ssh_from_bastion" {
-#   type                     = "ingress"
-#   security_group_id        = aws_security_group.app_sg.id
-#   from_port                = 22
-#   to_port                  = 22
-#   protocol                 = "tcp"
-#   source_security_group_id = aws_security_group.bastion_sg.id
-#   description              = "SSH from Bastion"
-# }
-
 # Egress: HTTPS to Internet (via NAT)
 resource "aws_security_group_rule" "app_egress_https_inet" {
   type              = "egress"
@@ -265,26 +254,6 @@ resource "aws_security_group_rule" "db_ingress_from_app" {
   description              = "DB port from App tier"
 }
 
-# --- Bastion rules ---
-# resource "aws_security_group_rule" "bastion_ingress_ssh_from_admin" {
-#   type              = "ingress"
-#   security_group_id = aws_security_group.bastion_sg.id
-#   from_port         = 22
-#   to_port           = 22
-#   protocol          = "tcp"
-#   cidr_blocks       = var.admin_cidrs
-#   description       = "SSH from admin IPs"
-# }
-
-# resource "aws_security_group_rule" "bastion_egress_ssh_to_app" {
-#   type                     = "egress"
-#   security_group_id        = aws_security_group.bastion_sg.id
-#   from_port                = 22
-#   to_port                  = 22
-#   protocol                 = "tcp"
-#   source_security_group_id = aws_security_group.app_sg.id
-#   description              = "SSH to App"
-# }
 
 # Optional: allow package updates from bastion
 resource "aws_security_group_rule" "bastion_egress_https" {
@@ -296,17 +265,6 @@ resource "aws_security_group_rule" "bastion_egress_https" {
   cidr_blocks       = ["0.0.0.0/0"]
   description       = "HTTPS egress for SSM endpoints & updates"
 }
-
-# resource "aws_security_group_rule" "bastion_egress_http" {
-#   type              = "egress"
-#   security_group_id = aws_security_group.bastion_sg.id
-#   from_port         = 80
-#   to_port           = 80
-#   protocol          = "tcp"
-#   cidr_blocks       = ["0.0.0.0/0"]
-#   description       = "HTTP to Internet"
-# }
-
 
 # ------- NACLS -------
 
@@ -391,17 +349,6 @@ resource "aws_network_acl_rule" "app_in_https_from_vpc" {
   to_port        = 443
 }
 
-# # SSH from Bastion (inside VPC)
-# resource "aws_network_acl_rule" "app_in_ssh_from_vpc" {
-#   network_acl_id = aws_network_acl.app_nacl.id
-#   rule_number    = 120
-#   egress         = false
-#   protocol       = "tcp"
-#   rule_action    = "allow"
-#   cidr_block     = var.vpc_cidr
-#   from_port      = 22
-#   to_port        = 22
-# }
 
 # Inbound ephemeral from VPC (responses)
 resource "aws_network_acl_rule" "app_in_ephemeral_from_vpc" {
