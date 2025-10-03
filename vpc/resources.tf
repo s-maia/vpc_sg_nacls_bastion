@@ -5,7 +5,7 @@ resource "aws_vpc" "assignment1_vpc" {
   enable_dns_support   = true
 
   tags = {
-    Name = "${var.project}-${var.environment}-vpc"
+    Name = "${local.name_prefix}-vpc"
   }
 }
 
@@ -19,7 +19,7 @@ resource "aws_subnet" "public_subnet" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "${var.project}-${var.environment}-public-${each.value.az}"
+    Name = "${local.name_prefix}-public-${each.value.az}"
     Tier = "public"
     AZ   = each.value.az
   }
@@ -35,13 +35,13 @@ resource "aws_subnet" "private_subnet" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "${var.project}-${var.environment}-app-${each.value.az}"
+    Name = "${local.name_prefix}-app-${each.value.az}"
     Tier = "app"
     AZ   = each.value.az
   }
 }
 
-#Private Data Subnets
+#Private Database Subnets
 resource "aws_subnet" "private_data_subnet" {
   for_each = local.data_map
 
@@ -51,7 +51,7 @@ resource "aws_subnet" "private_data_subnet" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "${var.project}-${var.environment}-data-${each.value.az}"
+    Name = "${local.name_prefix}-data-${each.value.az}"
     Tier = "data"
     AZ   = each.value.az
   }
@@ -332,9 +332,9 @@ resource "aws_network_acl_rule" "public_in_https" {
 
 # SSH/22 to bastion from admin IPs
 resource "aws_network_acl_rule" "public_in_ssh_admin" {
-  for_each       = toset(var.admin_cidrs)   # e.g., ["45.30.54.169/32"]
+  for_each       = toset(var.admin_cidrs) 
   network_acl_id = aws_network_acl.public_nacl.id
-  rule_number    = 115 + index(var.admin_cidrs, each.key)  # 115,116,...
+  rule_number    = 115 + index(var.admin_cidrs, each.key)
   egress         = false
   protocol       = "tcp"
   rule_action    = "allow"
@@ -351,8 +351,8 @@ resource "aws_network_acl_rule" "public_in_ephemeral" {
   protocol       = "tcp"
   rule_action    = "allow"
   cidr_block     = "0.0.0.0/0"
-  from_port      = local.ephemeral_from   # e.g., 1024
-  to_port        = local.ephemeral_to     # e.g., 65535
+  from_port      = local.ephemeral_from  
+  to_port        = local.ephemeral_to    
 }
 
 # OUTBOUND

@@ -51,6 +51,5 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -input=false -var-file=${ENVIRONMENT_STAGE}.tfvars
 
-      # Build infrastructure according to Terraform configuration files
-      # - name: Terraform Apply
-      #   run: terraform destroy -auto-approve -input=false -var-file=${ENVIRONMENT_STAGE}.tfvars
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false -var-file=${ENVIRONMENT_STAGE}.tfvars

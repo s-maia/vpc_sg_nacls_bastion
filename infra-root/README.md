@@ -1,8 +1,8 @@
 🔭 Secure & Scalable Multi-Tier VPC Foundation for a 3-Tier App
 
-This project delivers a fully automated Multi-Tier VPC Foundation using modular Terraform and GitHub Actions (GitOps). The infrastructure is secure, scalable, and environment-aware (dev/staging/production).
+This project delivers a fully automated Multi-Tier VPC Foundation using modules written from scratch in Terraform code and GitHub Actions (GitOps). The infrastructure is secure, scalable, and environment-aware (dev/staging/production).
 
-Implements a production-grade 3-tier layout (Public / Private-App / Private-Data) across 2 AZs, with bastion access, NAT egress, and tight Security Groups and NACLs.
+Implements a production-grade 3-tier layout (Public / Private-App / Private-Data) across 2 AZs, with bastion access, NAT gateway, and tight Security Groups and NACLs.
 
 
 🔭 Objectives
@@ -12,26 +12,35 @@ Implements a production-grade 3-tier layout (Public / Private-App / Private-Data
 - Configure IGW + NAT Gateways for private egress.
 - Implement least-privilege Security Groups and NACLs.
 - Provide a Bastion host for controlled admin access to private tiers.
-- Automate with Terraform + GitHub Actions using remote state in S3.
+- I Automated with Terraform + GitHub Actions and also used remote state in S3.
 
-
+   
 Repository layout
-
+ 
 .
-├── .github/workflows/        # CI/CD pipelines
-├── bastion/                  # Bastion module (EC2 via SSH key,)
+├── .github/
+│   └── workflows/
+│       └── deploy-infra.yaml
+├── bastion/
 │   ├── locals.tf
-│   ├── resources.tf          # EC2 + user_data hardening (no password SSH)
+│   ├── resources.tf
 │   └── variables.tf
-├── vpc/                      # VPC module (VPC, subnets, RTs, IGW, NAT, NACLs, SGs)
+├── infra-root/
+│   ├── .terraform/
+│   ├── .terraform.lock.hcl
+│   ├── dev.tfvars
+│   ├── main.tf
+│   ├── production.tfvars
+│   ├── provider.tf
+│   ├── README.md
+│   ├── staging.tfvars
+│   └── variables.tf
+├── vpc/
 │   ├── locals.tf
 │   ├── outputs.tf
 │   ├── resources.tf
 │   └── variables.tf
-└── infra-root/               # Root module (wires modules + backend/vars)
-    ├── dev.tfvars | staging.tfvars | production.tfvars
-    ├── main.tf | provider.tf | variables.tf
-    └── README.md  (this file)
+└── .gitignore
 
 
 
