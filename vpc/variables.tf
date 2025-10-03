@@ -43,8 +43,3 @@ variable "private_data_subnet_cidrs" {
     error_message = "private_data_subnet_cidrs must match the number of availability_zone."
   }
 }
-
-output "bastion_sg_id" {
-  description = "Bastion SG ID"
-  value       = aws_security_group.bastion_sg.id
-}
