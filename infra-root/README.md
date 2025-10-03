@@ -18,7 +18,7 @@ Implements a production-grade 3-tier layout (Public / Private-App / Private-Data
 Repository layout
 .
 ├── .github/workflows/        # CI/CD pipelines
-├── bastion/                  # Bastion module (EC2, IAM role/profile)
+├── bastion/                  # Bastion module (EC2, IAM role/profile, SG)
 │   ├── bastion_iam.tf
 │   ├── locals.tf
 │   ├── resources.tf
