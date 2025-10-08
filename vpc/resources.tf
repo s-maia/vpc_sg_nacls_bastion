@@ -365,7 +365,7 @@ resource "aws_network_acl_rule" "public_out_http" {
 resource "aws_network_acl_rule" "public_out_to_app_https" {
   for_each       = { for idx, cidr in local.app_cidrs : cidr => idx } 
   network_acl_id = aws_network_acl.public_nacl.id
-  rule_number    = 210 + each.value
+  rule_number    = 210 + each.value          #index number
   egress         = true
   protocol       = "tcp"
   rule_action    = "allow"
@@ -427,19 +427,6 @@ resource "aws_network_acl_rule" "app_in_ssh_from_vpc" {
   from_port      = 22
   to_port        = 22
 }
-
-# # Inbound ephemeral from public (responses)
-# resource "aws_network_acl_rule" "app_in_ephemeral_from_public" {
-#   for_each       = { for idx, cidr in local.public_cidrs : cidr => idx }
-#   network_acl_id = aws_network_acl.app_nacl.id
-#   rule_number    = 120 + each.value
-#   egress         = false
-#   protocol       = "tcp"
-#   rule_action    = "allow"
-#   cidr_block     = each.key
-#   from_port      = local.ephemeral_from
-#   to_port        = local.ephemeral_to
-# }
 
 # INBOUND from DATA (responses to App→DB)
 resource "aws_network_acl_rule" "app_in_ephemeral_from_data" {
